@@ -1,0 +1,161 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: API specification
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: paysnap
+    description: PaySnap shared rate board and edit lock
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+  /paysnap/rates:
+    get:
+      operationId: getPaysnapRates
+      tags: [paysnap]
+      summary: Get the shared PaySnap rates
+      responses:
+        "200":
+          description: Current shared AED and INR rates
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaySnapRatesResponse"
+    put:
+      operationId: updatePaysnapRates
+      tags: [paysnap]
+      summary: Update the shared PaySnap rates
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaySnapRatesInput"
+      responses:
+        "200":
+          description: Updated shared rates
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaySnapRatesResponse"
+        "400":
+          description: Invalid rate values
+        "401":
+          description: A valid rate-edit session is required
+        "503":
+          description: Rate editing is not configured
+  /paysnap/edit-session:
+    get:
+      operationId: getPaysnapEditSession
+      tags: [paysnap]
+      summary: Check the PaySnap rate-edit session
+      responses:
+        "200":
+          description: Current rate-edit session status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaySnapEditSessionStatus"
+    post:
+      operationId: unlockPaysnapEditSession
+      tags: [paysnap]
+      summary: Unlock PaySnap rate editing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaySnapUnlockInput"
+      responses:
+        "200":
+          description: Rate editing unlocked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaySnapEditSessionStatus"
+        "400":
+          description: Invalid request
+        "401":
+          description: Password did not match
+        "503":
+          description: Password lock is not configured
+    delete:
+      operationId: lockPaysnapEditSession
+      tags: [paysnap]
+      summary: Lock PaySnap rate editing
+      responses:
+        "200":
+          description: Rate editing locked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaySnapEditSessionStatus"
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+    PaySnapUnlockInput:
+      type: object
+      properties:
+        password:
+          type: string
+          minLength: 1
+          maxLength: 256
+      required:
+        - password
+    PaySnapEditSessionStatus:
+      type: object
+      properties:
+        unlocked:
+          type: boolean
+      required:
+        - unlocked
+    PaySnapRatesInput:
+      type: object
+      properties:
+        aedRate:
+          type: [number, "null"]
+          exclusiveMinimum: 0
+        inrRate:
+          type: [number, "null"]
+          exclusiveMinimum: 0
+      required:
+        - aedRate
+        - inrRate
+    PaySnapRatesResponse:
+      type: object
+      properties:
+        aedRate:
+          type: [number, "null"]
+        inrRate:
+          type: [number, "null"]
+        updatedAt:
+          type: [string, "null"]
+          format: date-time
+      required:
+        - aedRate
+        - inrRate
+        - updatedAt
+
